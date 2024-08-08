@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Maps Distance Calculator</title>
+<style>
+     #map {
+        height: 80vh;
+        width: 100%;
+    }
+    .location-label {
+        background-color: rgb(255, 255, 255);
+        color: red;
+        padding: 5px 10px;
+        border-radius: 5px;
+    }
+    .infowindow {
+        background-color: white;
+        padding: 10px;
+        border-radius: 5px;
+    }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div>
+    <label for="latitude">Latitude:</label>
+    <input type="text" id="latitude" value="">
+    <label for="longitude">Longitude:</label>
+    <input type="text" id="longitude" value="">
+    <button onclick="calculateDistance()">Calculate Distance</button>
+
+    <label for="latitude">Latitude:</label>
+    <input type="text" id="savelatitude" value="">
+    <label for="longitude">Longitude:</label>
+    <input type="text" id="savelongitude" value="">
+    <button onclick="calculateDistance()">Save Data</button>
+</div>
+<div id="distance"></div>
+<script>
+    let map;
+    let currentLocation;
+    let destinationMarker;
+    let distancePolyline;
+    let infowindow;
+
+    function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+            center: {lat: 0, lng: 0},
+            zoom: 18,
+            mapTypeId: 'satellite'
+        });
+
+        // Try HTML5 geolocation.
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                currentLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                map.setCenter(currentLocation);
+                new google.maps.Marker({
+                    position: currentLocation,
+                    map: map,
+                    title: 'Your Location',
+                    label: {
+                    text: 'Your Location',
+                    className: 'location-label'
+                    }
+                });
+            }, function() {
+                handleLocationError(true, map.getCenter());
+            });
+        } else {
+            // Browser doesn't support Geolocation
+            handleLocationError(false, map.getCenter());
+        }
+
+        infowindow = new google.maps.InfoWindow();
+
+        // Event listener to capture click on map
+        google.maps.event.addListener(map, 'click', function(event) {
+            document.getElementById('latitude').value = event.latLng.lat();
+            document.getElementById('longitude').value = event.latLng.lng();
+            document.getElementById('savelatitude').value = event.latLng.lat();
+            document.getElementById('savelongitude').value = event.latLng.lng();
+        });
+    }
+
+    function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+        console.error(browserHasGeolocation ?
+            'Error: The Geolocation service failed.' :
+            'Error: Your browser doesn\'t support geolocation.');
+    }
+
+    function calculateDistance() {
+        let latitude = parseFloat(document.getElementById('latitude').value);
+        let longitude = parseFloat(document.getElementById('longitude').value);
+        let destination = {lat: latitude, lng: longitude};
+
+        if (destinationMarker) {
+            destinationMarker.setMap(null);
+        }
+
+        if (distancePolyline) {
+            distancePolyline.setMap(null);
+        }
+
+        destinationMarker = new google.maps.Marker({
+            position: destination,
+            map: map,
+            title: 'Destination',
+        });
+
+        let distance = google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(currentLocation), new google.maps.LatLng(latitude, longitude));
+
+        distancePolyline = new google.maps.Polyline({
+            path: [currentLocation, destination],
+            geodesic: true,
+            strokeColor: '#0000FF',
+            strokeOpacity: 1.0,
+            strokeWeight: 10,
+            map: map
+        });
+
+        let contentString = '<div class="infowindow">Place:Mandalay </br>Distance: ' + (distance / 1000).toFixed(2) + ' km</div>';
+        infowindow.setContent(contentString);
+        infowindow.setPosition(distancePolyline.getPath().getAt(1));
+        infowindow.open(map);
+    }
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDaivcUiNbhuGMawhCEm0NuHWeFyk8mZTA&libraries=geometry&callback=initMap" async defer></script>
+<!-- Replace YOUR_API_KEY with your actual Google Maps API key -->
+</body>
+</html>
